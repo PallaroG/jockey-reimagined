@@ -3,6 +3,24 @@ using UnityEngine;
 
 public class CardManager : MonoBehaviour
 {
+    private static CardManager _instance;
+
+    public static CardManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindFirstObjectByType<CardManager>();
+                if (_instance == null)
+                {
+                    Debug.LogError("ERRO: Um CardManager é necessário na cena, mas não foi encontrado.");
+                }
+            }
+            return _instance;
+        }
+    }
+
     [Header("Configuração do Deck")]
     [Tooltip("Arraste TODOS os seus assets de CardData para esta lista.")]
     public List<CardData> deckCompleto;
@@ -10,27 +28,21 @@ public class CardManager : MonoBehaviour
     private List<CardData> baralhoAtual = new List<CardData>();
     private List<CardData> descarte = new List<CardData>();
 
-    // Singleton para fácil acesso de outros scripts
-    public static CardManager Instance { get; private set; }
-
     void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
         }
         else
         {
-            Instance = this;
+            _instance = this;
         }
-
-        // Inicia o jogo com o baralho pronto
         ReiniciarBaralho();
     }
 
     public void ReiniciarBaralho()
     {
-        // Copia todos os CardData do deck configurado para o baralho que será usado no jogo.
         baralhoAtual.Clear();
         baralhoAtual.AddRange(deckCompleto);
         Embaralhar();
@@ -50,21 +62,17 @@ public class CardManager : MonoBehaviour
 
     public CardData ComprarCarta()
     {
+        if (baralhoAtual.Count == 0 && descarte.Count > 0)
+        {
+            baralhoAtual.AddRange(descarte);
+            descarte.Clear();
+            Embaralhar();
+        }
+        
         if (baralhoAtual.Count == 0)
         {
-            // Se o baralho acabar, reembaralha o descarte (se houver cartas lá)
-            if (descarte.Count > 0)
-            {
-                Debug.Log("Baralho acabou! Reembaralhando o descarte...");
-                baralhoAtual.AddRange(descarte);
-                descarte.Clear();
-                Embaralhar();
-            }
-            else
-            {
-                Debug.LogWarning("Não há mais cartas para comprar no baralho ou no descarte!");
-                return null;
-            }
+            Debug.LogWarning("Não há mais cartas para comprar!");
+            return null;
         }
 
         CardData cartaComprada = baralhoAtual[0];

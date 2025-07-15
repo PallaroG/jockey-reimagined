@@ -1,7 +1,6 @@
 using UnityEngine;
-using UnityEngine.UI; // Necessário para interagir com botões
+using UnityEngine.UI;
 
-// O enum foi melhorado para refletir os estados de seleção de forma mais clara
 public enum GameState { Start, PlayerChooseBoat, IaChooseBoat, GameplayLoop }
 
 public class BattleScript : MonoBehaviour
@@ -13,60 +12,60 @@ public class BattleScript : MonoBehaviour
     [Header("Referências de UI")]
     public GameObject jogarButton;
     public GameObject passarTurnoButton;
-    public GameObject mensagemUI; // Opcional, para dar feedback ao jogador
+    public GameObject mensagemUI;
 
     [Header("Referências de Scripts")]
     public BoatSelectionManager selectionManager;
+    public PlayerHand playerHand;
 
     void Start()
     {
-        // Estado inicial do jogo
         gameState = GameState.Start;
-
-        // Configuração inicial dos botões
         jogarButton.SetActive(true);
         passarTurnoButton.SetActive(false);
-        mensagemUI.SetActive(false); // Esconde a mensagem inicial
+        if (mensagemUI != null) mensagemUI.SetActive(false);
+        
+        // Mantemos o objeto da mão desativado se ele existir,
+        // já que o teste é só no console.
+        if (playerHand != null) playerHand.gameObject.SetActive(false);
     }
 
-    // --- MÉTODOS CONTROLADOS PELOS BOTÕES ---
-
-    // Este método deve ser chamado pelo OnClick() do seu botão "Jogar"
     public void OnJogarButtonClicked()
     {
-        jogarButton.SetActive(false); // Esconde o botão "Jogar"
-        mensagemUI.SetActive(true);   // Mostra uma mensagem como "Escolha seu barco"
-        // (Você precisa configurar o texto da mensagem na UI)
-
-        // Muda o estado para permitir que o jogador escolha um barco
+        jogarButton.SetActive(false);
+        if (mensagemUI != null) mensagemUI.SetActive(true);
         gameState = GameState.PlayerChooseBoat;
-        Debug.Log("Estado alterado para PlayerChooseBoat. Clique em um barco.");
     }
 
-    // Este método deve ser chamado pelo OnClick() do seu botão "Passar Turno"
     public void OnPassarTurnoButtonClicked()
     {
-        passarTurnoButton.SetActive(false); // Esconde o botão após o clique
-
-        // Muda o estado e inicia a seleção das IAs
+        passarTurnoButton.SetActive(false);
         gameState = GameState.IaChooseBoat;
-        Debug.Log("Estado alterado para IaChooseBoat. IAs estão escolhendo...");
         selectionManager.SelectBoatsForIA(numeroDeIAs);
 
-        // Após a seleção da IA, o jogo entra no loop principal
         gameState = GameState.GameplayLoop;
-        Debug.Log("Seleção completa! O jogo agora entraria no loop de movimento de cartas.");
+        
+        // Chamada para o teste de compra de cartas
+        if (playerHand != null)
+        {
+            // Ativamos o objeto SÓ para garantir que o script PlayerHand possa rodar
+            playerHand.gameObject.SetActive(true);
+
+            // Chamamos a compra de cartas, que agora só vai usar o console
+            playerHand.ComprarCartasIniciais(7);
+
+            // Desativamos de novo, pois não há nada para ver
+            playerHand.gameObject.SetActive(false); 
+        }
+        else
+        {
+            Debug.LogError("ERRO: A referência ao PlayerHand não está configurada no BattleScript!");
+        }
     }
 
-
-    // --- MÉTODO DE COMUNICAÇÃO ---
-
-    // Este método é CHAMADO pelo BoatSelectionManager quando o jogador clica em um barco válido.
     public void PlayerHasChosenBoat()
     {
-        Debug.Log("BattleScript notificado: Jogador escolheu um barco.");
-        // Agora que o jogador escolheu, o botão "Passar Turno" aparece.
         passarTurnoButton.SetActive(true);
-        mensagemUI.SetActive(false); // Esconde a mensagem "Escolha seu barco"
+        if (mensagemUI != null) mensagemUI.SetActive(false);
     }
 }
