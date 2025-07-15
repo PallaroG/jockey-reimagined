@@ -1,140 +1,72 @@
 using UnityEngine;
-using System.Collections.Generic;
+using UnityEngine.UI; // Necessário para interagir com botões
 
-public enum TurnState { START, PLAYERTURN, ENEMYTURN, WON, LOST }
+// O enum foi melhorado para refletir os estados de seleção de forma mais clara
+public enum GameState { Start, PlayerChooseBoat, IaChooseBoat, GameplayLoop }
 
 public class BattleScript : MonoBehaviour
 {
-    public TurnState state;
+    [Header("Controle de Estado")]
+    public GameState gameState;
+    public int numeroDeIAs = 5;
 
-    public List<string> enemyNames = new List<string> { "Inimigo 1", "Inimigo 2" };
-
+    [Header("Referências de UI")]
     public GameObject jogarButton;
-    public GameObject mensagemUI;
-    public GameObject dinheiroUI;
-    public GameObject passarButton;
+    public GameObject passarTurnoButton;
+    public GameObject mensagemUI; // Opcional, para dar feedback ao jogador
 
-    private GameObject playerSelectedBoat;
-    private Dictionary<string, GameObject> enemySelectedBoats = new Dictionary<string, GameObject>();
-
-    private bool gameStarted = false;
-
-    public void StartGame()
-    {
-        gameStarted = true;
-        state = TurnState.PLAYERTURN;
-
-        // Esconde o botão Jogar e mostra Mensagem e Dinheiro
-        jogarButton.SetActive(false);
-        mensagemUI.SetActive(true);
-        dinheiroUI.SetActive(true);
-
-        Debug.Log("Jogo iniciado! Agora você pode escolher um barco.");
-    }
-    
-    public void OnPassarButton()
-    {
-        SwitchTurn();
-        passarButton.SetActive(false); // Esconde botão ao trocar turno
-    }
-
+    [Header("Referências de Scripts")]
+    public BoatSelectionManager selectionManager;
 
     void Start()
     {
-        // No início, deixa Mensagem e Dinheiro ocultos
-        mensagemUI.SetActive(false);
-        dinheiroUI.SetActive(false);
-        passarButton.SetActive(false);
+        // Estado inicial do jogo
+        gameState = GameState.Start;
+
+        // Configuração inicial dos botões
+        jogarButton.SetActive(true);
+        passarTurnoButton.SetActive(false);
+        mensagemUI.SetActive(false); // Esconde a mensagem inicial
     }
 
-    void Update()
+    // --- MÉTODOS CONTROLADOS PELOS BOTÕES ---
+
+    // Este método deve ser chamado pelo OnClick() do seu botão "Jogar"
+    public void OnJogarButtonClicked()
     {
-        if (!gameStarted) return;
+        jogarButton.SetActive(false); // Esconde o botão "Jogar"
+        mensagemUI.SetActive(true);   // Mostra uma mensagem como "Escolha seu barco"
+        // (Você precisa configurar o texto da mensagem na UI)
 
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            SwitchTurn();
-        }
-
-        if (state == TurnState.PLAYERTURN)
-        {
-            HandlePlayerInput();
-        }
+        // Muda o estado para permitir que o jogador escolha um barco
+        gameState = GameState.PlayerChooseBoat;
+        Debug.Log("Estado alterado para PlayerChooseBoat. Clique em um barco.");
     }
 
-    void SwitchTurn()
+    // Este método deve ser chamado pelo OnClick() do seu botão "Passar Turno"
+    public void OnPassarTurnoButtonClicked()
     {
-        if (state == TurnState.PLAYERTURN)
-        {
-            if (playerSelectedBoat == null)
-            {
-                Debug.Log("Você precisa escolher um barco antes de passar o turno!");
-                return;
-            }
+        passarTurnoButton.SetActive(false); // Esconde o botão após o clique
 
-            state = TurnState.ENEMYTURN;
-            Debug.Log("Turno dos Inimigos.");
-            EnemySelectBoats();
-        }
-        else if (state == TurnState.ENEMYTURN)
-        {
-            state = TurnState.PLAYERTURN;
-            playerSelectedBoat = null;
-            enemySelectedBoats.Clear();
-            Debug.Log("Novo turno do Jogador.");
-        }
+        // Muda o estado e inicia a seleção das IAs
+        gameState = GameState.IaChooseBoat;
+        Debug.Log("Estado alterado para IaChooseBoat. IAs estão escolhendo...");
+        selectionManager.SelectBoatsForIA(numeroDeIAs);
+
+        // Após a seleção da IA, o jogo entra no loop principal
+        gameState = GameState.GameplayLoop;
+        Debug.Log("Seleção completa! O jogo agora entraria no loop de movimento de cartas.");
     }
 
-    void HandlePlayerInput()
+
+    // --- MÉTODO DE COMUNICAÇÃO ---
+
+    // Este método é CHAMADO pelo BoatSelectionManager quando o jogador clica em um barco válido.
+    public void PlayerHasChosenBoat()
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("Boat"))
-            {
-                if (playerSelectedBoat == null)
-                {
-                    playerSelectedBoat = hit.collider.gameObject;
-                    Debug.Log($"Jogador selecionou o barco: {playerSelectedBoat.name}");
-
-                    mensagemUI.SetActive(false);
-                    passarButton.SetActive(true); // Ativa botão Passar
-                }
-                else
-                {
-                    Debug.Log("Você já escolheu um barco neste turno.");
-                }
-            }
-        }
-    }
-
-   
-
-    void EnemySelectBoats()
-    {
-        GameObject[] allBoats = GameObject.FindGameObjectsWithTag("Boat");
-
-        List<GameObject> availableBoats = new List<GameObject>(allBoats);
-        availableBoats.Remove(playerSelectedBoat);
-
-        foreach (string enemyName in enemyNames)
-        {
-            if (availableBoats.Count == 0)
-            {
-                Debug.Log("Não há barcos suficientes para os inimigos.");
-                break;
-            }
-
-            int randomIndex = Random.Range(0, availableBoats.Count);
-            GameObject chosenBoat = availableBoats[randomIndex];
-            enemySelectedBoats.Add(enemyName, chosenBoat);
-            Debug.Log($"{enemyName} escolheu o barco: {chosenBoat.name}");
-
-            availableBoats.RemoveAt(randomIndex);
-        }
-
-        Debug.Log("Inimigos terminaram.");
+        Debug.Log("BattleScript notificado: Jogador escolheu um barco.");
+        // Agora que o jogador escolheu, o botão "Passar Turno" aparece.
+        passarTurnoButton.SetActive(true);
+        mensagemUI.SetActive(false); // Esconde a mensagem "Escolha seu barco"
     }
 }

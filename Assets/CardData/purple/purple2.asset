@@ -9,9 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 36668cffbb583b84bbb4991c8cdffe71, type: 3}
+  m_Script: {fileID: 11500000, guid: 34b1d3b1a2be7af40b051dc67874feba, type: 3}
   m_Name: purple2
   m_EditorClassIdentifier: 
-  cardName: Advance 2 Purple
-  cardColor: 2
-  move: 2
+  nomeDaCarta: Purple 2
+  arteDaCarta: {fileID: 21300000, guid: 5c8052f52ebfe9f4da40f438862aaf59, type: 3}
+  valorMovimento: 2
+  idDoBarco: 0
